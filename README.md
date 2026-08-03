@@ -128,6 +128,12 @@ If you have ideas, suggestions, or find any issues, feel free to open an Issue o
 
 ---
 
+# Author
+
+Ericke Castro
+
+---
+
 # 📄 License
 
 This project is licensed under the MIT License.
