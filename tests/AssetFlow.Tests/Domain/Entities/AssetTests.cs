@@ -64,6 +64,97 @@ public sealed class AssetTests
     }
 
     [Fact]
+    public void CompleteMaintenance_ShouldThrow_WhenAssetIsNotUnderMaintenance()
+    {
+        var asset = CreateAsset();
+
+        var exception = Assert.Throws<InvalidAssetStatusTransitionException>(() => asset.CompleteMaintenance(AssetCondition.Good));
+
+        Assert.Equal(AssetStatus.Available, exception.CurrentStatus);
+
+        Assert.Equal(AssetStatus.UnderMaintenance, exception.TargetStatus);
+    }
+
+    [Fact]
+    public void MarkAsLost_ShouldChangeStatusToLost_WhenAssetIsAvailable()
+    {
+        var asset = CreateAsset();
+
+        asset.MarkAsLost();
+
+        Assert.Equal(AssetStatus.Lost, asset.Status);
+    }
+
+    [Fact]
+    public void MarkAsLost_ShouldChangeStatusToLost_WhenAssetIsReserved()
+    {
+        var asset = CreateAsset();
+        asset.Reserve();
+
+        asset.MarkAsLost();
+
+        Assert.Equal(AssetStatus.Lost, asset.Status);
+    }
+
+    [Fact]
+    public void Recover_ShouldReturnAssetToAvailableAndUpdateCondition()
+    {
+        var asset = CreateAsset();
+        asset.MarkAsLost();
+
+        asset.Recover(AssetCondition.Fair);
+
+        Assert.Equal(AssetStatus.Available, asset.Status);
+        Assert.Equal(AssetCondition.Fair, asset.Condition);
+    }
+
+    [Fact]
+    public void Recover_ShouldThrow_WhenAssetIsNotLost()
+    {
+        var asset = CreateAsset();
+
+        var exception = Assert.Throws<InvalidAssetStatusTransitionException>(() => asset.Recover(AssetCondition.Good));
+
+        Assert.Equal(AssetStatus.Available, exception.CurrentStatus);
+
+        Assert.Equal(AssetStatus.Lost, exception.TargetStatus);
+    }
+
+    [Fact]
+    public void Retire_ShouldChangeStatusToRetired_WhenAssetIsAvailable()
+    {
+        var asset = CreateAsset();
+
+        asset.Retire();
+
+        Assert.Equal(AssetStatus.Retired, asset.Status);
+    }
+
+    [Fact]
+    public void Retire_ShouldChangeStatusToRetired_WhenAssetIsUnderMaintenance()
+    {
+        var asset = CreateAsset();
+        asset.SendToMaintenance();
+
+        asset.Retire();
+
+        Assert.Equal(AssetStatus.Retired, asset.Status);
+    }
+
+    [Fact]
+    public void Reserve_ShouldThrow_WhenAssetIsUnderMaintenance()
+    {
+        var asset = CreateAsset();
+        asset.SendToMaintenance();
+
+        var exception = Assert.Throws<InvalidAssetStatusTransitionException>(asset.Reserve);
+
+        Assert.Equal(AssetStatus.UnderMaintenance, exception.CurrentStatus);
+
+        Assert.Equal(AssetStatus.Reserved, exception.TargetStatus);
+    }
+
+    [Fact]
     public void Dispose_ShouldThrow_WhenAssetIsNotRetired()
     {
         var asset = CreateAsset();
@@ -71,6 +162,7 @@ public sealed class AssetTests
         var exception = Assert.Throws<InvalidAssetStatusTransitionException>(asset.Dispose);
 
         Assert.Equal(AssetStatus.Available, exception.CurrentStatus);
+
         Assert.Equal(AssetStatus.Disposed, exception.TargetStatus);
     }
 
@@ -97,9 +189,6 @@ public sealed class AssetTests
 
     private static Asset CreateAsset()
     {
-        return new Asset(
-            new AssetCode("PAT-0001"),
-            "Notebook Dell",
-            condition: AssetCondition.Good);
+        return new Asset(new AssetCode("PAT-0001"), "Notebook Dell", condition: AssetCondition.Good);
     }
 }
