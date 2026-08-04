@@ -30,7 +30,7 @@ The project follows software engineering best practices, including Clean Archite
 - REST API
 - Cross-platform mobile application
 
-# 🛠 Tech Stack
+# Tech Stack
 
 ### Backend
 
