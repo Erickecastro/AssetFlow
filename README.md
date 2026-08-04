@@ -1,4 +1,4 @@
-# 🚀 AssetFlow
+#  AssetFlow
 
 > A modern platform for intelligent IT asset management.
 
@@ -8,9 +8,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql)
 ![License](https://img.shields.io/badge/License-MIT-success?style=for-the-badge)
 
----
-
-# 📖 About
+# About
 
 **AssetFlow** is a cross-platform IT Asset Management (ITAM) solution designed to centralize and optimize the management of technology assets throughout their entire lifecycle.
 
@@ -18,9 +16,7 @@ The platform enables organizations to efficiently manage equipment, monitor asse
 
 The project follows software engineering best practices, including Clean Architecture, Domain-Driven Design principles, and scalable application design.
 
----
-
-# ✨ Features
+# Features
 
 - Asset registration
 - Asset inventory management
@@ -34,9 +30,7 @@ The project follows software engineering best practices, including Clean Archite
 - REST API
 - Cross-platform mobile application
 
----
-
-# 🛠 Tech Stack
+# Tech Stack
 
 ### Backend
 
@@ -64,17 +58,14 @@ The project follows software engineering best practices, including Clean Archite
 - Azure
 - Serilog
 
----
-
-# 📱 Supported Platforms
+# Supported Platforms
 
 - Windows
 - Android
 - iOS
+- Mac
 
----
-
-# 🎯 Goals
+# Goals
 
 - Centralize IT asset management
 - Improve inventory control
@@ -83,11 +74,7 @@ The project follows software engineering best practices, including Clean Archite
 - Generate business reports
 - Increase operational efficiency
 
----
-
-# 🚧 Roadmap
-
-## MVP
+# Roadmap
 
 - [ ] User authentication
 - [ ] User management
@@ -112,23 +99,17 @@ The project follows software engineering best practices, including Clean Archite
 - [ ] Audit logs
 - [ ] Role-based permissions
 
----
-
-# 📸 Screenshots
+# Screenshots
 
 > Coming soon.
 
----
-
-# 🤝 Contributing
+# Contributing
 
 Contributions are welcome!
 
 If you have ideas, suggestions, or find any issues, feel free to open an Issue or submit a Pull Request.
 
----
-
-# 📄 License
+# License
 
 This project is licensed under the MIT License.
 
