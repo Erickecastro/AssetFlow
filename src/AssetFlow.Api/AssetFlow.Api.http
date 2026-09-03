@@ -1,6 +1,53 @@
 @AssetFlow.Api_HostAddress = http://localhost:5014
+@token = paste-token-here
+@departmentId = paste-department-id-here
+@assetId = paste-asset-id-here
 
-GET {{AssetFlow.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+POST {{AssetFlow.Api_HostAddress}}/api/auth/token
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "assetflow-demo"
+}
 
 ###
+
+POST {{AssetFlow.Api_HostAddress}}/api/departments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Tecnologia",
+  "description": "Segundo andar"
+}
+
+###
+
+POST {{AssetFlow.Api_HostAddress}}/api/assets
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "PAT-0001",
+  "name": "Notebook Dell",
+  "serialNumber": "SN-123",
+  "description": "Uso administrativo",
+  "condition": 3
+}
+
+###
+
+POST {{AssetFlow.Api_HostAddress}}/api/assets/{{assetId}}/assign
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "departmentId": "{{departmentId}}",
+  "notes": "Entregue ao departamento"
+}
+
+###
+
+GET {{AssetFlow.Api_HostAddress}}/api/assets/{{assetId}}
+Authorization: Bearer {{token}}
