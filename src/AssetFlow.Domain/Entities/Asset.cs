@@ -7,11 +7,13 @@ namespace AssetFlow.Domain.Entities;
 
 public sealed class Asset : Entity
 {
+    private readonly List<AssetMovement> _movements = [];
+
     public AssetCode Code { get; private set; }
 
-    public string Name { get; private set; }
+    public AssetName Name { get; private set; }
 
-    public string? Description { get; private set; }
+    public AssetDescription? Description { get; private set; }
 
     public SerialNumber? SerialNumber { get; private set; }
 
@@ -19,32 +21,45 @@ public sealed class Asset : Entity
 
     public AssetCondition Condition { get; private set; }
 
+    public Guid? DepartmentId { get; private set; }
+
+    public IReadOnlyCollection<AssetMovement> Movements => _movements.AsReadOnly();
+
     private Asset()
     {
         Code = null!;
-        Name = string.Empty;
+        Name = null!;
     }
 
     public Asset(
-        AssetCode code, string name, SerialNumber? serialNumber = null, string? description = null, AssetCondition condition = AssetCondition.New)
+        AssetCode code,
+        AssetName name,
+        SerialNumber? serialNumber = null,
+        AssetDescription? description = null,
+        AssetCondition condition = AssetCondition.New)
     {
         ArgumentNullException.ThrowIfNull(code);
+        ArgumentNullException.ThrowIfNull(name);
 
         Code = code;
-        Name = NormalizeName(name);
+        Name = name;
         SerialNumber = serialNumber;
-        Description = NormalizeDescription(description);
+        Description = description;
         Condition = ValidateCondition(condition);
         Status = AssetStatus.Available;
     }
 
-    public void UpdateBasicInformation(string name, SerialNumber? serialNumber, string? description)
+    public void UpdateBasicInformation(
+        AssetName name,
+        SerialNumber? serialNumber,
+        AssetDescription? description)
     {
         EnsureNotDisposed();
+        ArgumentNullException.ThrowIfNull(name);
 
-        Name = NormalizeName(name);
+        Name = name;
         SerialNumber = serialNumber;
-        Description = NormalizeDescription(description);
+        Description = description;
     }
 
     public void ChangeCondition(AssetCondition condition)
@@ -66,6 +81,71 @@ public sealed class Asset : Entity
             AssetStatus.Reserved);
     }
 
+    public void AssignToDepartment(
+        Department department,
+        DateTimeOffset occurredAt,
+        string? notes = null)
+    {
+        ArgumentNullException.ThrowIfNull(department);
+        EnsureCurrentStatus(AssetStatus.Available, AssetStatus.Assigned);
+
+        var movement = new AssetMovement(
+            AssetMovementType.Assignment,
+            null,
+            department.Id,
+            occurredAt,
+            notes);
+
+        DepartmentId = department.Id;
+        Status = AssetStatus.Assigned;
+        _movements.Add(movement);
+    }
+
+    public void TransferToDepartment(
+        Department department,
+        DateTimeOffset occurredAt,
+        string? notes = null)
+    {
+        ArgumentNullException.ThrowIfNull(department);
+        EnsureCurrentStatus(AssetStatus.Assigned, AssetStatus.Assigned);
+
+        if (DepartmentId == department.Id)
+        {
+            throw new InvalidOperationException(
+                "The asset is already assigned to this department.");
+        }
+
+        var previousDepartmentId = DepartmentId;
+        var movement = new AssetMovement(
+            AssetMovementType.Transfer,
+            previousDepartmentId,
+            department.Id,
+            occurredAt,
+            notes);
+
+        DepartmentId = department.Id;
+        _movements.Add(movement);
+    }
+
+    public void ReturnToInventory(
+        DateTimeOffset occurredAt,
+        string? notes = null)
+    {
+        EnsureCurrentStatus(AssetStatus.Assigned, AssetStatus.Available);
+
+        var previousDepartmentId = DepartmentId;
+        var movement = new AssetMovement(
+            AssetMovementType.Return,
+            previousDepartmentId,
+            null,
+            occurredAt,
+            notes);
+
+        DepartmentId = null;
+        Status = AssetStatus.Available;
+        _movements.Add(movement);
+    }
+
     public void SendToMaintenance()
     {
         ChangeStatus(
@@ -76,7 +156,9 @@ public sealed class Asset : Entity
 
     public void CompleteMaintenance(AssetCondition condition)
     {
-        EnsureCurrentStatus(AssetStatus.UnderMaintenance);
+        EnsureCurrentStatus(
+            AssetStatus.UnderMaintenance,
+            AssetStatus.Available);
 
         Condition = ValidateCondition(condition);
         Status = AssetStatus.Available;
@@ -92,7 +174,9 @@ public sealed class Asset : Entity
 
     public void Recover(AssetCondition condition)
     {
-        EnsureCurrentStatus(AssetStatus.Lost);
+        EnsureCurrentStatus(
+            AssetStatus.Lost,
+            AssetStatus.Available);
 
         Condition = ValidateCondition(condition);
         Status = AssetStatus.Available;
@@ -118,12 +202,15 @@ public sealed class Asset : Entity
         Status = targetStatus;
     }
 
-    private void EnsureCurrentStatus(AssetStatus expectedStatus)
+    private void EnsureCurrentStatus(
+        AssetStatus expectedStatus,
+        AssetStatus targetStatus)
     {
         if (Status != expectedStatus)
         {
             throw new InvalidAssetStatusTransitionException(
                 Status,
+                targetStatus,
                 expectedStatus);
         }
     }
@@ -134,40 +221,6 @@ public sealed class Asset : Entity
         {
             throw new InvalidOperationException("A disposed asset cannot be modified.");
         }
-    }
-
-    private static string NormalizeName(string name)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            throw new ArgumentException("Asset name cannot be empty.", nameof(name));
-        }
-
-        name = name.Trim();
-
-        if (name.Length > 150)
-        {
-            throw new ArgumentException("Asset name cannot exceed 150 characters.", nameof(name));
-        }
-
-        return name;
-    }
-
-    private static string? NormalizeDescription(string? description)
-    {
-        if (string.IsNullOrWhiteSpace(description))
-        {
-            return null;
-        }
-
-        description = description.Trim();
-
-        if (description.Length > 500)
-        {
-            throw new ArgumentException("Asset description cannot exceed 500 characters.", nameof(description));
-        }
-
-        return description;
     }
 
     private static AssetCondition ValidateCondition(
