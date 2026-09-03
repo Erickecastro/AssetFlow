@@ -85,6 +85,40 @@ The project follows software engineering best practices, including Clean Archite
 - [ ] Dashboard
 - [ ] Search system
 
+# Experimental API
+
+The current experimental backend supports:
+
+- JWT authentication with a local demo account
+- Department creation and listing
+- Asset creation and listing
+- Asset assignment and transfer between departments
+- Return to inventory
+- Complete movement history
+- A stable QR payload (`assetflow:asset:{id}`) for each asset
+
+## Local setup
+
+1. Start PostgreSQL with `docker compose up -d`.
+2. Apply the database schema:
+   `dotnet ef database update --project src/AssetFlow.Infrastructure --startup-project src/AssetFlow.Api`
+3. Run the API with `dotnet run --project src/AssetFlow.Api`.
+4. Use `src/AssetFlow.Api/AssetFlow.Api.http` for example requests.
+
+## Experimental GUI
+
+With PostgreSQL and the API running, start the Windows MAUI client:
+
+`dotnet run --project src/AssetFlow.Mobile -f net10.0-windows10.0.19041.0`
+
+The GUI supports JWT login, department and asset registration, inventory
+refresh, asset assignment/transfer, return to inventory, movement history,
+and copying the stable QR payload.
+
+The local-only demo credentials are `admin` / `assetflow-demo`. The connection
+string, demo credentials, and JWT signing key must be supplied through secure
+configuration before any deployment.
+
 ## Future Features
 
 - [ ] QR Code support

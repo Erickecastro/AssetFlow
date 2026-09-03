@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+using AssetFlow.Mobile.Services;
+using AssetFlow.Mobile.ViewModels;
+using Microsoft.Extensions.Logging;
 
 namespace AssetFlow.Mobile;
 
@@ -11,13 +13,24 @@ public static class MauiProgram
             .UseMauiApp<App>()
             .ConfigureFonts(fonts =>
             {
-                fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-                fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                fonts.AddFont("CascadiaCode.ttf", "CascadiaCode");
             });
 
 #if DEBUG
         builder.Logging.AddDebug();
 #endif
+
+        var apiAddress = DeviceInfo.Platform == DevicePlatform.Android
+            ? "http://10.0.2.2:5014/"
+            : "http://localhost:5014/";
+        builder.Services.AddSingleton(new HttpClient
+        {
+            BaseAddress = new Uri(apiAddress),
+            Timeout = TimeSpan.FromSeconds(15)
+        });
+        builder.Services.AddSingleton<AssetFlowApiClient>();
+        builder.Services.AddSingleton<MainViewModel>();
+        builder.Services.AddSingleton<MainPage>();
 
         return builder.Build();
     }

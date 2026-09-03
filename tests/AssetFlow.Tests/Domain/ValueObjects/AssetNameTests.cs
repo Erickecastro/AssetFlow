@@ -1,3 +1,4 @@
+using AssetFlow.Domain.Enums;
 using AssetFlow.Domain.ValueObjects;
 
 namespace AssetFlow.Tests.Domain.ValueObjects;
