@@ -34,4 +34,9 @@ internal sealed class DepartmentRepository : IDepartmentRepository
 
         return departments.OrderBy(department => department.Name.Value).ToArray();
     }
+
+    public void Remove(Department department) => _dbContext.Departments.Remove(department);
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default) =>
+        _dbContext.SaveChangesAsync(cancellationToken);
 }

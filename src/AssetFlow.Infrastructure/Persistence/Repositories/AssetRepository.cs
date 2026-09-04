@@ -40,4 +40,6 @@ internal sealed class AssetRepository : IAssetRepository
     {
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
+
+    public void Remove(Asset asset) => _dbContext.Assets.Remove(asset);
 }

@@ -10,5 +10,7 @@ public interface IAssetRepository
 
     Task<IReadOnlyList<Asset>> ListAsync(CancellationToken cancellationToken = default);
 
+    void Remove(Asset asset) => throw new NotSupportedException();
+
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

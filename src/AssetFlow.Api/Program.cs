@@ -106,6 +106,19 @@ departments.MapPost("/", async (
 departments.MapGet("/", (
     DepartmentService service,
     CancellationToken cancellationToken) => service.ListAsync(cancellationToken));
+departments.MapPut("/{id:guid}", (
+    Guid id,
+    UpdateDepartmentCommand command,
+    DepartmentService service,
+    CancellationToken cancellationToken) => service.UpdateAsync(id, command, cancellationToken));
+departments.MapDelete("/{id:guid}", async (
+    Guid id,
+    DepartmentService service,
+    CancellationToken cancellationToken) =>
+{
+    await service.DeleteAsync(id, cancellationToken);
+    return Results.NoContent();
+});
 
 var assets = app.MapGroup("/api/assets").RequireAuthorization();
 assets.MapPost("/", async (
@@ -123,6 +136,19 @@ assets.MapGet("/{id:guid}", (
     Guid id,
     AssetService service,
     CancellationToken cancellationToken) => service.GetAsync(id, cancellationToken));
+assets.MapPut("/{id:guid}", (
+    Guid id,
+    UpdateAssetCommand command,
+    AssetService service,
+    CancellationToken cancellationToken) => service.UpdateAsync(id, command, cancellationToken));
+assets.MapDelete("/{id:guid}", async (
+    Guid id,
+    AssetService service,
+    CancellationToken cancellationToken) =>
+{
+    await service.DeleteAsync(id, cancellationToken);
+    return Results.NoContent();
+});
 assets.MapPost("/{id:guid}/assign", (
     Guid id,
     MoveAssetCommand command,

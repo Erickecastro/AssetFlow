@@ -9,13 +9,16 @@ public sealed class AssetService
 {
     private readonly IAssetRepository _assets;
     private readonly IDepartmentRepository _departments;
+    private readonly TimeProvider _timeProvider;
 
     public AssetService(
         IAssetRepository assets,
-        IDepartmentRepository departments)
+        IDepartmentRepository departments,
+        TimeProvider timeProvider)
     {
         _assets = assets;
         _departments = departments;
+        _timeProvider = timeProvider;
     }
 
     public async Task<AssetDto> CreateAsync(
@@ -33,6 +36,15 @@ public sealed class AssetService
                 : new AssetDescription(command.Description),
             command.Condition);
 
+        if (command.DepartmentId is Guid departmentId)
+        {
+            var department = await GetDepartmentAsync(departmentId, cancellationToken);
+            asset.AssignToDepartment(
+                department,
+                _timeProvider.GetUtcNow(),
+                "Atribuição inicial realizada no cadastro do ativo.");
+        }
+
         await _assets.AddAsync(asset, cancellationToken);
         return Map(asset);
     }
@@ -49,6 +61,28 @@ public sealed class AssetService
         CancellationToken cancellationToken = default)
     {
         return Map(await GetAssetAsync(id, cancellationToken));
+    }
+
+    public async Task<AssetDto> UpdateAsync(
+        Guid id,
+        UpdateAssetCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        var asset = await GetAssetAsync(id, cancellationToken);
+        asset.UpdateBasicInformation(
+            new AssetName(command.Name),
+            string.IsNullOrWhiteSpace(command.SerialNumber) ? null : new SerialNumber(command.SerialNumber),
+            string.IsNullOrWhiteSpace(command.Description) ? null : new AssetDescription(command.Description));
+        asset.ChangeCondition(command.Condition);
+        await _assets.SaveChangesAsync(cancellationToken);
+        return Map(asset);
+    }
+
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var asset = await GetAssetAsync(id, cancellationToken);
+        _assets.Remove(asset);
+        await _assets.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<AssetDto> AssignAsync(

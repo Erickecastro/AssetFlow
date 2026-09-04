@@ -7,6 +7,7 @@ public sealed record CreateAssetCommand(
     string Name,
     string? SerialNumber,
     string? Description,
+    Guid? DepartmentId = null,
     AssetCondition Condition = AssetCondition.New);
 
 public sealed record MoveAssetCommand(
@@ -14,6 +15,12 @@ public sealed record MoveAssetCommand(
     string? Notes = null);
 
 public sealed record ReturnAssetCommand(string? Notes = null);
+
+public sealed record UpdateAssetCommand(
+    string Name,
+    string? SerialNumber,
+    string? Description,
+    AssetCondition Condition);
 
 public sealed record AssetMovementDto(
     Guid Id,
