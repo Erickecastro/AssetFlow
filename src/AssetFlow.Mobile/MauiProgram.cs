@@ -10,19 +10,16 @@ public static class MauiProgram
     {
         var builder = MauiApp.CreateBuilder();
         builder
-            .UseMauiApp<App>()
-            .ConfigureFonts(fonts =>
-            {
-                fonts.AddFont("CascadiaCode.ttf", "CascadiaCode");
-            });
+            .UseMauiApp<App>();
 
 #if DEBUG
         builder.Logging.AddDebug();
 #endif
 
-        var apiAddress = DeviceInfo.Platform == DevicePlatform.Android
+        var defaultApiAddress = DeviceInfo.Platform == DevicePlatform.Android
             ? "http://10.0.2.2:5014/"
             : "http://localhost:5014/";
+        var apiAddress = Preferences.Default.Get("AssetFlow.ApiBaseAddress", defaultApiAddress);
         builder.Services.AddSingleton(new HttpClient
         {
             BaseAddress = new Uri(apiAddress),

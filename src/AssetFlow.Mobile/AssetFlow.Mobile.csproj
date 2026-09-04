@@ -28,7 +28,7 @@
         <MauiXamlInflator>SourceGen</MauiXamlInflator>
 
         <!-- Display name -->
-        <ApplicationTitle>AssetFlow.Mobile</ApplicationTitle>
+        <ApplicationTitle>AssetFlow</ApplicationTitle>
 
         <!-- App Identifier -->
         <ApplicationId>com.companyname.assetflow.mobile</ApplicationId>

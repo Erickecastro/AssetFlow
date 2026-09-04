@@ -44,6 +44,20 @@ public sealed class AssetFlowApiClient
         return await ReadAsync<DepartmentModel>(response, cancellationToken);
     }
 
+    public async Task<DepartmentModel> UpdateDepartmentAsync(
+        Guid id, string name, string? description, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PutAsJsonAsync(
+            $"api/departments/{id}", new { name, description }, cancellationToken);
+        return await ReadAsync<DepartmentModel>(response, cancellationToken);
+    }
+
+    public async Task DeleteDepartmentAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.DeleteAsync($"api/departments/{id}", cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
     public Task<IReadOnlyList<AssetModel>> GetAssetsAsync(CancellationToken cancellationToken = default) =>
         GetListAsync<AssetModel>("api/assets", cancellationToken);
 
@@ -52,13 +66,29 @@ public sealed class AssetFlowApiClient
         string name,
         string? serialNumber,
         string? description,
+        Guid? departmentId,
         CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PostAsJsonAsync(
             "api/assets",
-            new { code, name, serialNumber, description, condition = 1 },
+            new { code, name, serialNumber, description, departmentId, condition = 1 },
             cancellationToken);
         return await ReadAsync<AssetModel>(response, cancellationToken);
+    }
+
+    public async Task<AssetModel> UpdateAssetAsync(
+        Guid id, string name, string? serialNumber, string? description, int condition,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PutAsJsonAsync(
+            $"api/assets/{id}", new { name, serialNumber, description, condition }, cancellationToken);
+        return await ReadAsync<AssetModel>(response, cancellationToken);
+    }
+
+    public async Task DeleteAssetAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.DeleteAsync($"api/assets/{id}", cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
     }
 
     public async Task<AssetModel> MoveAssetAsync(

@@ -20,7 +20,13 @@ public sealed class MainViewModel : ViewModelBase
     private string _assetDescription = string.Empty;
     private string _movementNotes = string.Empty;
     private DepartmentModel? _selectedDepartment;
+    private DepartmentModel? _selectedAssetDepartment;
     private AssetModel? _selectedAsset;
+    private Guid? _editingDepartmentId;
+    private Guid? _editingAssetId;
+    private string _searchText = string.Empty;
+    private readonly List<DepartmentModel> _allDepartments = [];
+    private readonly List<AssetModel> _allAssets = [];
 
     public MainViewModel(AssetFlowApiClient api)
     {
@@ -28,7 +34,7 @@ public sealed class MainViewModel : ViewModelBase
         LoginCommand = new AsyncCommand(LoginAsync);
         RefreshCommand = new AsyncCommand(RefreshAsync, () => IsAuthenticated);
         AddDepartmentCommand = new AsyncCommand(AddDepartmentAsync, () => IsAuthenticated);
-        AddAssetCommand = new AsyncCommand(AddAssetAsync, () => IsAuthenticated);
+        AddAssetCommand = new AsyncCommand(AddAssetAsync, () => IsAuthenticated && SelectedAssetDepartment is not null);
         MoveAssetCommand = new AsyncCommand(MoveAssetAsync, CanMoveAsset);
         ReturnAssetCommand = new AsyncCommand(ReturnAssetAsync, CanReturnAsset);
         CopyQrCommand = new AsyncCommand(CopyQrAsync, () => SelectedAsset is not null);
@@ -55,14 +61,27 @@ public sealed class MainViewModel : ViewModelBase
     public string AssetSerialNumber { get => _assetSerialNumber; set => SetProperty(ref _assetSerialNumber, value); }
     public string AssetDescription { get => _assetDescription; set => SetProperty(ref _assetDescription, value); }
     public string MovementNotes { get => _movementNotes; set => SetProperty(ref _movementNotes, value); }
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (SetProperty(ref _searchText, value)) ApplySearch();
+        }
+    }
+    public string DepartmentSubmitText => _editingDepartmentId is null ? "Adicionar departamento" : "Salvar alterações";
+    public string AssetSubmitText => _editingAssetId is null ? "Adicionar ao inventário" : "Salvar alterações";
     public string StatusMessage { get => _statusMessage; private set => SetProperty(ref _statusMessage, value); }
     public bool IsLoggedOut => !IsAuthenticated;
     public bool HasSelectedAsset => SelectedAsset is not null;
     public string MoveButtonText => SelectedAsset?.Status == 2 ? "Transferir ativo" : "Atribuir ativo";
-    public int TotalAssetCount => Assets.Count;
-    public int AvailableAssetCount => Assets.Count(asset => asset.Status == 1);
-    public int AssignedAssetCount => Assets.Count(asset => asset.Status == 2);
-    public int MaintenanceAssetCount => Assets.Count(asset => asset.Status == 4);
+    public int TotalAssetCount => _allAssets.Count;
+    public int AvailableAssetCount => _allAssets.Count(asset => asset.Status == 1);
+    public int AssignedAssetCount => _allAssets.Count(asset => asset.Status == 2);
+    public int MaintenanceAssetCount => _allAssets.Count(asset => asset.Status == 4);
+    public double AvailableAssetRatio => Ratio(AvailableAssetCount);
+    public double AssignedAssetRatio => Ratio(AssignedAssetCount);
+    public double MaintenanceAssetRatio => Ratio(MaintenanceAssetCount);
 
     public bool IsAuthenticated
     {
@@ -92,6 +111,15 @@ public sealed class MainViewModel : ViewModelBase
             {
                 RaiseCommandStates();
             }
+        }
+    }
+
+    public DepartmentModel? SelectedAssetDepartment
+    {
+        get => _selectedAssetDepartment;
+        set
+        {
+            if (SetProperty(ref _selectedAssetDepartment, value)) RaiseCommandStates();
         }
     }
 
@@ -126,10 +154,14 @@ public sealed class MainViewModel : ViewModelBase
     {
         var departments = await _api.GetDepartmentsAsync();
         var assets = await _api.GetAssetsAsync();
-        Replace(Departments, departments);
-        Replace(Assets, assets);
+        _allDepartments.Clear();
+        _allDepartments.AddRange(departments);
+        _allAssets.Clear();
+        _allAssets.AddRange(assets);
+        ApplySearch();
         NotifyDashboardCounts();
         SelectedDepartment ??= Departments.FirstOrDefault();
+        SelectedAssetDepartment ??= Departments.FirstOrDefault();
         if (SelectedAsset is not null)
         {
             SelectedAsset = Assets.FirstOrDefault(asset => asset.Id == SelectedAsset.Id);
@@ -138,25 +170,79 @@ public sealed class MainViewModel : ViewModelBase
 
     private Task AddDepartmentAsync() => RunAsync(async () =>
     {
-        var department = await _api.CreateDepartmentAsync(DepartmentName, DepartmentDescription);
-        Departments.Add(department);
+        var department = _editingDepartmentId is Guid id
+            ? await _api.UpdateDepartmentAsync(id, DepartmentName, DepartmentDescription)
+            : await _api.CreateDepartmentAsync(DepartmentName, DepartmentDescription);
+        var existing = _allDepartments.FindIndex(item => item.Id == department.Id);
+        if (existing >= 0) _allDepartments[existing] = department; else _allDepartments.Add(department);
+        ApplySearch();
         SelectedDepartment = department;
         DepartmentName = string.Empty;
         DepartmentDescription = string.Empty;
-        StatusMessage = $"Departamento {department.Name} adicionado.";
+        StatusMessage = $"Departamento {department.Name} salvo.";
+        _editingDepartmentId = null;
+        OnPropertyChanged(nameof(DepartmentSubmitText));
     });
 
     private Task AddAssetAsync() => RunAsync(async () =>
     {
-        var asset = await _api.CreateAssetAsync(AssetCode, AssetName, AssetSerialNumber, AssetDescription);
-        Assets.Add(asset);
+        var asset = _editingAssetId is Guid id
+            ? await _api.UpdateAssetAsync(
+                id,
+                AssetName,
+                AssetSerialNumber,
+                AssetDescription,
+                _allAssets.First(item => item.Id == id).Condition)
+            : await _api.CreateAssetAsync(AssetCode, AssetName, AssetSerialNumber, AssetDescription, SelectedAssetDepartment?.Id);
+        var existing = _allAssets.FindIndex(item => item.Id == asset.Id);
+        if (existing >= 0) _allAssets[existing] = asset; else _allAssets.Add(asset);
+        ApplySearch();
         NotifyDashboardCounts();
         SelectedAsset = asset;
         AssetCode = string.Empty;
         AssetName = string.Empty;
         AssetSerialNumber = string.Empty;
         AssetDescription = string.Empty;
-        StatusMessage = $"Ativo {asset.Code} adicionado.";
+        StatusMessage = $"Ativo {asset.Code} salvo.";
+        _editingAssetId = null;
+        OnPropertyChanged(nameof(AssetSubmitText));
+    });
+
+    public void BeginEditDepartment(DepartmentModel department)
+    {
+        _editingDepartmentId = department.Id;
+        DepartmentName = department.Name;
+        DepartmentDescription = department.Description ?? string.Empty;
+        OnPropertyChanged(nameof(DepartmentSubmitText));
+    }
+
+    public void BeginEditAsset(AssetModel asset)
+    {
+        _editingAssetId = asset.Id;
+        AssetCode = asset.Code;
+        AssetName = asset.Name;
+        AssetSerialNumber = asset.SerialNumber ?? string.Empty;
+        AssetDescription = asset.Description ?? string.Empty;
+        SelectedAssetDepartment = _allDepartments.FirstOrDefault(item => item.Id == asset.DepartmentId);
+        OnPropertyChanged(nameof(AssetSubmitText));
+    }
+
+    public Task DeleteDepartmentAsync(DepartmentModel department) => RunAsync(async () =>
+    {
+        await _api.DeleteDepartmentAsync(department.Id);
+        _allDepartments.RemoveAll(item => item.Id == department.Id);
+        ApplySearch();
+        StatusMessage = $"Departamento {department.Name} excluído.";
+    });
+
+    public Task DeleteAssetAsync(AssetModel asset) => RunAsync(async () =>
+    {
+        await _api.DeleteAssetAsync(asset.Id);
+        _allAssets.RemoveAll(item => item.Id == asset.Id);
+        if (SelectedAsset?.Id == asset.Id) SelectedAsset = null;
+        ApplySearch();
+        NotifyDashboardCounts();
+        StatusMessage = $"Ativo {asset.Code} excluído.";
     });
 
     private Task MoveAssetAsync() => RunAsync(async () =>
@@ -244,11 +330,31 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(AvailableAssetCount));
         OnPropertyChanged(nameof(AssignedAssetCount));
         OnPropertyChanged(nameof(MaintenanceAssetCount));
+        OnPropertyChanged(nameof(AvailableAssetRatio));
+        OnPropertyChanged(nameof(AssignedAssetRatio));
+        OnPropertyChanged(nameof(MaintenanceAssetRatio));
     }
+
+    private double Ratio(int count) => TotalAssetCount == 0 ? 0 : (double)count / TotalAssetCount;
 
     private static void Replace<T>(ObservableCollection<T> target, IEnumerable<T> values)
     {
         target.Clear();
         foreach (var value in values) target.Add(value);
+    }
+
+    private void ApplySearch()
+    {
+        var term = SearchText.Trim();
+        Replace(Departments, string.IsNullOrEmpty(term)
+            ? _allDepartments
+            : _allDepartments.Where(item => item.Name.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                (item.Description?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)));
+        Replace(Assets, string.IsNullOrEmpty(term)
+            ? _allAssets
+            : _allAssets.Where(item => item.Code.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                item.Name.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                (item.Description?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)));
+        NotifyDashboardCounts();
     }
 }
