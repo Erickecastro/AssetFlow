@@ -143,8 +143,16 @@ public sealed class MainViewModel : ViewModelBase
         {
             await _api.LoginAsync(Username, Password);
             IsAuthenticated = true;
-            await RefreshCoreAsync();
-            StatusMessage = "Conectado ao AssetFlow.";
+
+            try
+            {
+                await RefreshCoreAsync();
+                StatusMessage = "Conectado ao AssetFlow.";
+            }
+            catch (Exception)
+            {
+                StatusMessage = "Login realizado, mas os dados não puderam ser carregados. Verifique a conexão com a API e o banco de dados.";
+            }
         });
     }
 
@@ -170,6 +178,11 @@ public sealed class MainViewModel : ViewModelBase
 
     private Task AddDepartmentAsync() => RunAsync(async () =>
     {
+        if (string.IsNullOrWhiteSpace(DepartmentName))
+        {
+            throw new ArgumentException("Informe o nome do departamento antes de salvar.");
+        }
+
         var department = _editingDepartmentId is Guid id
             ? await _api.UpdateDepartmentAsync(id, DepartmentName, DepartmentDescription)
             : await _api.CreateDepartmentAsync(DepartmentName, DepartmentDescription);
@@ -177,8 +190,10 @@ public sealed class MainViewModel : ViewModelBase
         if (existing >= 0) _allDepartments[existing] = department; else _allDepartments.Add(department);
         ApplySearch();
         SelectedDepartment = department;
+        SelectedAssetDepartment ??= department;
         DepartmentName = string.Empty;
         DepartmentDescription = string.Empty;
+        SearchText = string.Empty;
         StatusMessage = $"Departamento {department.Name} salvo.";
         _editingDepartmentId = null;
         OnPropertyChanged(nameof(DepartmentSubmitText));
@@ -186,6 +201,16 @@ public sealed class MainViewModel : ViewModelBase
 
     private Task AddAssetAsync() => RunAsync(async () =>
     {
+        if (string.IsNullOrWhiteSpace(AssetCode) || string.IsNullOrWhiteSpace(AssetName))
+        {
+            throw new ArgumentException("Informe o código patrimonial e o nome do ativo antes de salvar.");
+        }
+
+        if (_editingAssetId is null && SelectedAssetDepartment is null)
+        {
+            throw new ArgumentException("Selecione o departamento ou localização inicial do ativo.");
+        }
+
         var asset = _editingAssetId is Guid id
             ? await _api.UpdateAssetAsync(
                 id,
@@ -203,6 +228,7 @@ public sealed class MainViewModel : ViewModelBase
         AssetName = string.Empty;
         AssetSerialNumber = string.Empty;
         AssetDescription = string.Empty;
+        SearchText = string.Empty;
         StatusMessage = $"Ativo {asset.Code} salvo.";
         _editingAssetId = null;
         OnPropertyChanged(nameof(AssetSubmitText));

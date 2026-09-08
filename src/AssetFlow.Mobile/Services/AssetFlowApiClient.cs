@@ -139,6 +139,29 @@ public sealed class AssetFlowApiClient
         }
 
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!string.IsNullOrWhiteSpace(body))
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(body);
+                if (document.RootElement.TryGetProperty("title", out var title) &&
+                    title.ValueKind == JsonValueKind.String &&
+                    !string.IsNullOrWhiteSpace(title.GetString()))
+                {
+                    body = title.GetString()!;
+                }
+                else if (document.RootElement.TryGetProperty("detail", out var detail) &&
+                         detail.ValueKind == JsonValueKind.String &&
+                         !string.IsNullOrWhiteSpace(detail.GetString()))
+                {
+                    body = detail.GetString()!;
+                }
+            }
+            catch (JsonException)
+            {
+                // A API também pode retornar texto simples; nesse caso, preserve a mensagem recebida.
+            }
+        }
         var message = string.IsNullOrWhiteSpace(body)
             ? $"A API respondeu com {(int)response.StatusCode}."
             : body;

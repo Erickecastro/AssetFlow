@@ -195,6 +195,8 @@ public partial class MainPage : ContentPage
         StatsGrid.IsVisible = showDashboard;
         DashboardDivider.IsVisible = showDashboard;
         DashboardInsights.IsVisible = showDashboard;
+        DashboardQuickActions.IsVisible = showDashboard;
+        NewAssetAction.IsVisible = showAssets;
         FormsGrid.IsVisible = showAssets || showDepartments;
         AssetFormCard.IsVisible = showAssets;
         DepartmentFormCard.IsVisible = showDepartments;

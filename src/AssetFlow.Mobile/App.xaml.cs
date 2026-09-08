@@ -33,17 +33,25 @@ public partial class App : Application
             return;
         }
 
-        var titleBar = nativeWindow.AppWindow.TitleBar;
-        titleBar.BackgroundColor = Microsoft.UI.Colors.Black;
-        titleBar.ForegroundColor = Microsoft.UI.Colors.White;
-        titleBar.ButtonBackgroundColor = Microsoft.UI.Colors.Black;
-        titleBar.ButtonForegroundColor = Microsoft.UI.Colors.White;
-        titleBar.ButtonHoverBackgroundColor = Microsoft.UI.Colors.White;
-        titleBar.ButtonHoverForegroundColor = Microsoft.UI.Colors.Black;
-        titleBar.ButtonPressedBackgroundColor = Microsoft.UI.Colors.White;
-        titleBar.ButtonPressedForegroundColor = Microsoft.UI.Colors.Black;
-        titleBar.InactiveBackgroundColor = Microsoft.UI.Colors.Black;
-        titleBar.InactiveForegroundColor = Microsoft.UI.Colors.White;
+        try
+        {
+            var titleBar = nativeWindow.AppWindow.TitleBar;
+            titleBar.BackgroundColor = Microsoft.UI.Colors.Black;
+            titleBar.ForegroundColor = Microsoft.UI.Colors.White;
+            titleBar.ButtonBackgroundColor = Microsoft.UI.Colors.Black;
+            titleBar.ButtonForegroundColor = Microsoft.UI.Colors.White;
+            titleBar.ButtonHoverBackgroundColor = Microsoft.UI.Colors.White;
+            titleBar.ButtonHoverForegroundColor = Microsoft.UI.Colors.Black;
+            titleBar.ButtonPressedBackgroundColor = Microsoft.UI.Colors.White;
+            titleBar.ButtonPressedForegroundColor = Microsoft.UI.Colors.Black;
+            titleBar.InactiveBackgroundColor = Microsoft.UI.Colors.Black;
+            titleBar.InactiveForegroundColor = Microsoft.UI.Colors.White;
+        }
+        catch
+        {
+            // Alguns ambientes Windows não disponibilizam AppWindow.TitleBar durante a inicialização.
+            // A aplicação continua com a barra nativa em vez de falhar ao abrir.
+        }
     }
 #endif
 }
